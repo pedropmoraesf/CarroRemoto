@@ -10,6 +10,8 @@ import android.content.pm.PackageManager;
 import android.graphics.PorterDuff;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -36,10 +38,23 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final int REQUEST_BLUETOOTH = 100;
     private static final int MIN_PWM = 120;
-    private static final int MAX_PWM = 250;
+    private static final int MAX_PWM = 160;
 
     // Uma fila de E/S preserva a ordem: movimento -> soltar -> parar.
     private final ExecutorService bluetoothIo = Executors.newSingleThreadExecutor();
+    // Reenvia vida a cada 200 ms SOMENTE enquanto um botao esta pressionado.
+    // O Nano corta a tracao se nao receber comandos em 800 ms.
+    private final Handler heartbeatHandler = new Handler(Looper.getMainLooper());
+    private final Runnable heartbeatTask = new Runnable() {
+        @Override
+        public void run() {
+            if (connected && armed
+                    && (activeDrive != View.NO_ID || activeSteering != View.NO_ID)) {
+                sendCommand("H");
+            }
+            heartbeatHandler.postDelayed(this, 200);
+        }
+    };
     private volatile BluetoothSocket socket;
     private volatile boolean connected;
     private boolean connecting;
@@ -118,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             return false;
         });
         updateInterface();
+        heartbeatHandler.postDelayed(heartbeatTask, 200);
     }
 
     private void updateSpeed(int progress, boolean fromUser) {
@@ -268,7 +284,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         armed = false;
         clearPressedDirections();
         // O firmware atual usa Y/W para parar a tração e Z/X para parar a direção.
-        sendCommand("YZ");
+        sendCommand("!YZ");
         updateInterface();
     }
 
@@ -362,6 +378,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             connected = false;
         });
         bluetoothIo.shutdown();
+        heartbeatHandler.removeCallbacks(heartbeatTask);
         super.onDestroy();
     }
 }
