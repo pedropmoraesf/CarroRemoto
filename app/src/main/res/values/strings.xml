@@ -1,10 +1,27 @@
 <resources>
-    <string name="app_name">controlecarrro2</string>
-    <string name="dir">\u27ab</string>
-    <string name="esq">&#x1f8a8;</string>
-    <string name="frente">€</string>
-    <string name="tras">€</string>
-    <string name="buzina">&#x1f4e2;</string>
-
-
+    <string name="app_name">Controle Carro</string>
+    <string name="connect">Conectar</string>
+    <string name="disconnect">Desconectar</string>
+    <string name="configure_short">MAC</string>
+    <string name="configure_title">Endereço Bluetooth do carro</string>
+    <string name="configure_hint">Informe o MAC do módulo Bluetooth já pareado (ex.: 98:D3:31:F9:4F:66).</string>
+    <string name="invalid_mac">Endereço Bluetooth inválido.</string>
+    <string name="enable_bluetooth">Ative o Bluetooth e tente novamente.</string>
+    <string name="bluetooth_permission">É necessária a permissão Bluetooth para conectar ao carro.</string>
+    <string name="connection_failed">Não foi possível conectar. Confira o pareamento e a distância.</string>
+    <string name="connection_lost">Conexão perdida. Controles bloqueados.</string>
+    <string name="connecting">Conectando…</string>
+    <string name="disconnected">Desconectado</string>
+    <string name="blocked">Conectado · bloqueado</string>
+    <string name="ready">Conectado · liberado</string>
+    <string name="unlock_controls">Liberar</string>
+    <string name="lock_controls">Bloquear</string>
+    <string name="emergency_stop">PARAR</string>
+    <string name="speed_label">Potência: %1$d%%</string>
+    <string name="speed_initial">Potência: 0%</string>
+    <string name="speed_content_description">Ajuste de potência</string>
+    <string name="forward">Para frente</string>
+    <string name="reverse">Para trás</string>
+    <string name="left">Para a esquerda</string>
+    <string name="right">Para a direita</string>
 </resources>
