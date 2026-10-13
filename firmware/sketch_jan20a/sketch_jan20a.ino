@@ -11,17 +11,23 @@
  *
  * PROTOCOLO BLUETOOTH SPP (9600 bps), compativel com o aplicativo:
  *   F = frente              T = tras
- *   Y ou W = soltar tracao  (desaceleracao normal)
+ *   Y ou W = soltar tracao  (roda livre, nao freio eletrico)
  *   R = virar direita       L = virar esquerda
  *   Z ou X = soltar direcao
  *   120; = exemplo de PWM desejado
  *   H = pulso de presenca enviado periodicamente pelo aplicativo atualizado
- *   ! = parada prioritaria (mais rapida, pode causar tranco)
+ *   ! = parada prioritaria (desabilita a ponte, NAO segura o carro)
  *
- * IMPORTANTE: com alguns circuitos BTS7960, PWM de ambos os lados em ZERO
- * com EN em HIGH equivale a FRENAGEM eletrica, e nao a roda livre.
- * Os pinos EN originais foram mantidos: e indispensavel verificar a fiação
- * ANTES de optar por um modo de roda livre no fim da rampa.
+ * BTS7960: os dois sinais INH/EN em LOW desligam os estagios de
+ * potencia, deixando o motor sem acionamento eletrico (alta impedancia).
+ * Com EN em HIGH e os dois PWMs em ZERO, os terminais podem ficar
+ * em curto pelo lado baixo, causando frenagem eletrica e arrasto.
+ * ATENCAO: D4/D5 so devem controlar INH se realmente estiverem
+ * ligados aos terminais L_EN/R_EN da placa IBT-2. O esquema antigo
+ * tambem os chama de "reles". CONFERIR A FIACAO antes de gravar!
+ * Na roda livre o carro pode continuar rolando, sobretudo em declives.
+ * Por seguranca, o recurso so ativa quando o sinalizador
+ * BTS_EN_D4_D5_CONFIRMADOS for mudado para true apos a verificacao.
  */
 
 // Biblioteca original para a interface Bluetooth serial por software.
@@ -32,7 +38,8 @@
 // //SoftwareSerial mySerial(8,9);  // alternativa antiga no historico.
 SoftwareSerial BTSerial(2, 11);
 
-// Ligacoes preservadas sem assumir que "rele" e realmente enable do IBT-2.
+// D4/D5 foram nomeados EN no original, mas a ligacao real precisa de
+// confirmacao visual/eletrica: nao presume que os fios vao direto ao IBT-2.
 // //int pino_R=5;  // anotacao historica preservada na copia original.
 // //int pino_L=6;
 const uint8_t pino_R_EN = 5;      // fio verde: antes "pinos reles"
@@ -58,11 +65,22 @@ const uint8_t pino_L = 8;
 const uint8_t PWM_MAXIMO_TESTE = 160;
 const uint8_t PWM_PADRAO = 120;
 
+// IMPORTANTE: default FALSE por nao termos inspecionado o chicote.
+// So alterar para true apos confirmar que D5 vai a R_EN e D4 a L_EN,
+// e que NENHUMA dessas linhas esta ligada diretamente ao +5 V.
+// Sem confirmacao, preserva o nivel HIGH que o codigo original usava.
+// O modo roda livre exige os dois enables realmente controlaveis.
+const bool BTS_EN_D4_D5_CONFIRMADOS = false;
+
 // Rampa executada por millis(), sem delay(10) no loop.
 // Passo 2 para acelerar: de 0 a 160 leva aproximadamente 1,6 s.
-// Passo 3 para desacelerar: de 160 a 0 leva aproximadamente 1,1 s.
-// A parada prioritaria usa um passo maior para reduzir tempo sem controle;
-// ela AINDA pode travar roda se a ponte H aplicar freio em PWM = 0.
+// Na soltura do acelerador, desabilita EN imediatamente (roda livre).
+// Os passos de desaceleracao continuam atualizando o PWM interno, para
+// que uma nova ordem nao recupere a potencia anterior de uma vez.
+// Isso NAO equivale a uma desaceleracao mecanica controlada: a inercia
+// do carro depende do terreno, massa, engrenagens e inclinacao.
+// Na parada prioritaria o PWM interno decai mais depressa, mas o EN
+// ja vai a LOW; parada por software NAO garante distancia de frenagem.
 const unsigned long INTERVALO_RAMPA_MS = 20;
 const uint8_t PASSO_ACELERACAO = 2;
 const uint8_t PASSO_DESACELERACAO = 3;
@@ -70,7 +88,7 @@ const uint8_t PASSO_PARADA_PRIORITARIA = 16;
 
 // Depois de chegar a zero, aguarda antes de inverter o giro da tracao.
 // A direcao eletrica tambem recebe um pequeno intervalo entre inversoes.
-const unsigned long NEUTRO_ANTES_REVERSAO_MS = 450;
+const unsigned long NEUTRO_ANTES_REVERSAO_MS = 2500;  // conservador; nao mede RPM
 const unsigned long NEUTRO_DIRECAO_MS = 150;
 
 // Quando o aplicativo deixa de enviar comandos por mais de 800 ms,
@@ -113,19 +131,56 @@ bool pedaisEstavamSoltos = false;
 // Guarda quanto tempo os dois controles analogicos ficaram soltos.
 unsigned long pedaisSoltosDesdeMs = 0;
 
-// Escreve o PWM em apenas UM lado da ponte, com o outro em zero.
-// Este codigo respeita os pinos e as polaridades do sketch anterior.
+// BTS7960: R_EN e L_EN LOW desabilitam os dois meios-estagios.
+// Com BTS_EN_D4_D5_CONFIRMADOS=true, EN ficam desligados quando
+// nao ha tracao; sem a confirmacao, o nivel original HIGH e mantido.
+// Nao confundir PWM=0 com verdadeira roda livre no IBT-2.
+bool ponteHabilitada = false;
+
+void desabilitarPonte() {
+  // PRIMEIRO desliga os dois EN; so depois coloca PWM em zero.
+  // Sem isto, ambos PWM=0 com EN=HIGH podem frear as rodas.
+  // Antes da confirmacao, nao altera o nivel eletrico do firmware
+  // original, pois D4/D5 podem acionar reles ou estar presos ao +5V.
+  uint8_t nivelParado = BTS_EN_D4_D5_CONFIRMADOS ? LOW : HIGH;
+  digitalWrite(pino_R_EN, nivelParado);
+  digitalWrite(pino_L_EN, nivelParado);
+  ponteHabilitada = false;
+}
+
+void habilitarPonte() {
+  // So habilitar DEPOIS de configurar um PWM e o outro em zero.
+  digitalWrite(pino_R_EN, HIGH);
+  digitalWrite(pino_L_EN, HIGH);
+  ponteHabilitada = true;
+}
+
+// Escreve PWM em UM lado; o outro sempre em zero.
+// Se nao houver tracao, desabilita fisicamente os dois lados da ponte:
+// isso e roda livre, nao freio mecanico e nem parada garantida.
 void aplicarTracao(int8_t sentido, uint8_t potencia) {
-  if (sentido == 1 && potencia > 0) {
+  if (sentido == 0 || potencia == 0) {
+    desabilitarPonte();
+    analogWrite(pino_frente, 0);
+    analogWrite(pino_tras, 0);
+    return;
+  }
+
+  if (sentido == 1) {
     analogWrite(pino_tras, 0);
     analogWrite(pino_frente, potencia);
-  } else if (sentido == -1 && potencia > 0) {
+  } else if (sentido == -1) {
     analogWrite(pino_frente, 0);
     analogWrite(pino_tras, potencia);
   } else {
+    desabilitarPonte();
     analogWrite(pino_frente, 0);
     analogWrite(pino_tras, 0);
+    return;
   }
+
+  // Nunca habilita a ponte antes que o outro canal PWM esteja zerado.
+  if (!ponteHabilitada) habilitarPonte();
 }
 
 // Coloca ambas as saidas de direcao em seu estado original de repouso.
@@ -287,8 +342,16 @@ void atualizarTracao(unsigned long agora) {
     tracaoAtiva = solicitado;
   }
 
-  // Nunca aplica PWM da direcao antiga depois de uma reversao.
-  aplicarTracao(tracaoAtiva, pwmAplicado);
+  // Na soltura NORMAL, inversao ou parada prioritaria: solicita
+  // roda livre IMEDIATA (EN LOW) se o chicote estiver confirmado;
+  // antes disso preserva a antiga frenagem com EN HIGH e PWM zero.
+  // A rampa acima continua reduzindo o PWM INTERNO; ao retomar, evita
+  // salto brusco para a antiga potencia. Sem sensor de velocidade,
+  // NAO podemos assegurar que as rodas ja pararam ao inverter.
+  bool podeTrazerPotencia = (solicitado != 0 && solicitado == tracaoAtiva
+                           && !paradaPrioritaria && !travaEmergencia);
+  aplicarTracao(podeTrazerPotencia ? tracaoAtiva : 0,
+               podeTrazerPotencia ? pwmAplicado : 0);
 }
 
 // A direcao original era acionada por LOW em D7/D8 e desligada por HIGH.
@@ -325,8 +388,16 @@ void verificarComunicacao(unsigned long agora) {
   }
 }
 
-// Prepara PWM em zero antes de configurar os enables originais.
+// Inicializa primeiro o estado configurado dos EN e so depois
+// muda pinMode para OUTPUT. Default HIGH preserva a montagem antiga;
+// apos confirmar D4/D5, o modo LOW permite iniciar em roda livre.
 void setup() {
+  uint8_t nivelInicial = BTS_EN_D4_D5_CONFIRMADOS ? LOW : HIGH;
+  digitalWrite(pino_R_EN, nivelInicial);
+  digitalWrite(pino_L_EN, nivelInicial);
+  pinMode(pino_R_EN, OUTPUT);
+  pinMode(pino_L_EN, OUTPUT);
+
   pinMode(pino_frente, OUTPUT);
   pinMode(pino_tras, OUTPUT);
   pinMode(pino_R, OUTPUT);
@@ -342,12 +413,10 @@ void setup() {
   // identificar a fiacao pode causar curto ou alimentar algo indevidamente.
   digitalWrite(pino_bts_vin, HIGH);
 
-  // Estas duas saidas ja eram inicializadas HIGH no firmware anterior.
-  // Confirmar no carro se acionam reles ou R_EN/L_EN antes de modificar!
-  pinMode(pino_R_EN, OUTPUT);
-  pinMode(pino_L_EN, OUTPUT);
-  digitalWrite(pino_R_EN, HIGH);
-  digitalWrite(pino_L_EN, HIGH);
+  // No firmware original D4/D5 ficavam permanentemente HIGH.
+  // AGORA estes pinos sao gerenciados por aplicarTracao(), para que a
+  // ponte desabilite quando a tracao nao for solicitada. Confirmar antes
+  // de gravar que D4 e D5 realmente vao aos pinos L_EN e R_EN do IBT-2.
 
   pinMode(pino_frente_analog, INPUT_PULLUP);
   pinMode(pino_tras_analog, INPUT_PULLUP);
@@ -359,7 +428,11 @@ void setup() {
   entrouEmNeutroMs = millis();
   desligouDirecaoMs = millis();
 
-  Serial.println(F("ControleCarro: seguro ao iniciar; PWM limitado."));
+  if (BTS_EN_D4_D5_CONFIRMADOS) {
+    Serial.println(F("ControleCarro: modo roda livre em D4/D5 habilitado."));
+  } else {
+    Serial.println(F("ControleCarro: modo roda livre BLOQUEADO ate confirmar D4/D5."));
+  }
 }
 
 // Laco principal: nao usa delay(), para processar solturas e timeout.

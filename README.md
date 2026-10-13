@@ -21,7 +21,7 @@ Aplicativo Android para controlar um carro infantil elétrico por Bluetooth clá
 ## Atenção à segurança
 
 **A parada pelo aplicativo NÃO substitui um corte físico de energia.**
-O firmware atualizado em `firmware/sketch_jan20a/` inclui desaceleração gradual, intervalo antes de inverter o sentido e timeout de 800 ms sem sinal Bluetooth. O aplicativo envia `H` periodicamente ao segurar uma seta e `!YZ` ao solicitar parada prioritária. Mesmo assim, a perda do sinal, uma falha elétrica ou uma ponte H com frenagem ativa podem produzir movimentos ou travamentos inesperados.
+O firmware atualizado em `firmware/sketch_jan20a/` inclui aceleração progressiva, proteção contra inversão imediata (2,5 segundos adicionais em neutro) e timeout de 800 ms sem sinal Bluetooth. O aplicativo envia `H` periodicamente ao segurar uma seta e `!YZ` ao solicitar parada prioritária. Há também um modo de **roda livre BTS7960**, preparado para desabilitar os dois enables ao soltar o botão, mas **desativado por padrão até conferir fisicamente a ligação de D4/D5 aos pinos R_EN/L_EN**. Quando ativado, o carro não freia eletricamente ao soltar: continua rolando por inércia, inclusive em descidas. Leia `firmware/LEIA-ME.md` antes de gravar o Nano.
 
 Antes de transportar pessoas, instale e teste um **interruptor físico independente do Arduino** para cortar a energia dos motores, confira o cabeamento e meça as correntes e temperaturas em ensaios supervisionados, sem ocupantes e inicialmente com as rodas suspensas. Consulte `firmware/LEIA-ME.md` para as limitações, parâmetros e orientações de validação.
 
