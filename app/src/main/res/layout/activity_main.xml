@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/txtValorFader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="10dp"
+        android:text="0"
+        android:textColor="#00FF00"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="@+id/centerArea"
+        app:layout_constraintStart_toStartOf="@+id/centerArea"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TableLayout
+        android:id="@+id/tableLeft"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:stretchColumns="*"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/centerArea"
+        app:layout_constraintHorizontal_weight="1"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <ImageButton
+                android:id="@+id/frente"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/baseline_keyboard_double_arrow_up_24" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <ImageButton
+                android:id="@+id/tras"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/baseline_keyboard_double_arrow_down_24" />
+        </TableRow>
+    </TableLayout>
+
+    <FrameLayout
+        android:id="@+id/centerArea"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipChildren="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/tableRight"
+        app:layout_constraintHorizontal_weight="0.8"
+        app:layout_constraintStart_toEndOf="@id/tableLeft"
+        app:layout_constraintTop_toBottomOf="@+id/txtValorFader">
+
+        <SeekBar
+            android:id="@+id/seekBar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:progressDrawable="@drawable/baseline_menu_24"
+            android:rotation="270"
+            android:splitTrack="false"
+            android:thumb="@drawable/baseline_settings_ethernet_24"
+            android:thumbOffset="0dp" />
+
+    </FrameLayout>
+
+    <TableLayout
+        android:id="@+id/tableRight"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:stretchColumns="*"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_weight="1"
+        app:layout_constraintStart_toEndOf="@id/centerArea"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <ImageButton
+                android:id="@+id/esquerda"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/baseline_keyboard_double_arrow_left_24" />
+
+            <ImageButton
+                android:id="@+id/direita"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/baseline_keyboard_double_arrow_right_24" />
+        </TableRow>
+    </TableLayout>
+
+</android.support.constraint.ConstraintLayout>
+
+    <!-- <TableLayout
+           android:layout_width="match_parent"
+           android:layout_height="match_parent"
+           android:layout_weight="1"
+           android:gravity="center_vertical"
+           android:paddingLeft="20dp"
+           android:paddingEnd="20dp"
+           android:stretchColumns="*"
+           android:visibility="visible">
+
+           <TableRow
+               android:layout_width="match_parent"
+               android:layout_height="match_parent"
+               android:visibility="gone">
+
+               <ImageButton
+                   android:id="@+id/buzina"
+                   android:layout_width="wrap_content"
+                   android:layout_height="wrap_content"
+                   app:srcCompat="@drawable/g235"
+                   tools:visibility="gone" />
+           </TableRow>
+
+           <TableRow
+               android:layout_width="match_parent"
+               android:layout_height="match_parent"
+               tools:visibility="gone">
+
+               <ToggleButton
+                   android:id="@+id/farol_baixo"
+                   android:layout_width="wrap_content"
+                   android:layout_height="wrap_content"
+                   android:drawableTop="@drawable/g234"
+                   android:gravity="center"
+                   android:textOff=""
+                   android:textOn=""
+                   android:textSize="0dp"
+                   android:visibility="gone"
+                   tools:visibility="gone" />
+           </TableRow>
+
+           <TableRow
+               android:layout_width="match_parent"
+               android:layout_height="match_parent"
+               tools:visibility="gone">
+
+               <ImageButton
+                   android:id="@+id/pisca_farol"
+                   android:layout_width="wrap_content"
+                   android:layout_height="wrap_content"
+                   android:visibility="gone"
+                   app:srcCompat="@drawable/g220" />
+           </TableRow>
+
+           <TableRow
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content">
+
+
+
+           </TableRow>
+
+       </TableLayout>-->

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+    <dimen name="botao_direcao">60sp</dimen>
+    <dimen name="pad">20dp</dimen>
+    <dimen name="bot_dir_h">250dp</dimen>
+    <dimen name="bot_dir_w">200dp</dimen>
+</resources>

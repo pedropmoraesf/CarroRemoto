@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">controlecarrro2</string>
+    <string name="dir">\u27ab</string>
+    <string name="esq">&#x1f8a8;</string>
+    <string name="frente">€</string>
+    <string name="tras">€</string>
+    <string name="buzina">&#x1f4e2;</string>
+
+
+</resources>
